@@ -1,0 +1,21 @@
+table {
+    border: 1px solid black;
+}
+
+td {
+    border: 1px solid black;
+    width:40px;
+    height:40px;
+    text-align: center}
+
+
+
+.hidden {
+    visibility: hidden;
+  }
+
+.restart {
+    width: 50px;
+    height: 40px;
+    font-size: xx-large;
+}  
