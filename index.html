@@ -9,22 +9,27 @@
 
 </head>
 <body>
-    <div class= "timer" ><h2>0.000</h2></div>
-    <button class = "restart" onclick="restartGame()">😄</button>
-    <div>
-        <button data-size="4", data-mines="2" onclick="levelclickedHandler(this)">Beginner</button>
-        <button data-size="8", data-mines="12" onclick="levelclickedHandler(this)">Medium</button>
-        <button data-size="12", data-mines="30" onclick="levelclickedHandler(this)">Expert</button>
-
-
+    <div class = "container">
+        <div class= "timer" ><h2>0.000</h2></div>
+        <button class = "restart" onclick="restartGame()">😄</button>
+        <div>
+            <button data-size="4", data-mines="2" onclick="levelclickedHandler(this)">Beginner</button>
+            <button data-size="8", data-mines="12" onclick="levelclickedHandler(this)">Medium</button>
+            <button data-size="12", data-mines="30" onclick="levelclickedHandler(this)">Expert</button>
+        </div>
+        <div class = "hints"> 
+            <button id = "hint0" onclick = "hintClickedHandler()">hint 1</button>
+            <button id = "hint1" onclick = "hintClickedHandler()">hint 2</button>
+            <button id = "hint2" onclick = "hintClickedHandler()">hint 3</button>
+    
+        </div>
+        <table>
+            <tbody>
+    
+            </tbody>
+        </table>
     </div>
-    <table>
-        <tbody>
-
-        </tbody>
-    </table>
-
-
+    
 
     <script src="js/app.js"></script>
 </body>

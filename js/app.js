@@ -10,46 +10,45 @@ var gGame = {
     shownCount: 0,
     markedBombsCount: 0,
     secsPassed: 0,
-    gFirstClicked: false
+    gIsFirstClicked: false,
+    livesCount: 3
 }
 var gInterval;
 var gLevel = {
     SIZE: 0,
     MINES: 0
-};
+}
+
+var ghintsUsed = 0;
 
 
-// function initGlobals() {
-//     console.log("init globals");
-//     gGame.isOn = false;
-//     gGame.shownCount = 0;
-//     gGame.markedBombsCount = 0;
-//     gGame.shownCount = 0;
-//     gGame.gFirstClicked = false;
-//     console.log("isOn", gGame.isOn);
 
-// }
 
-function restartGame(){
+function restartGame() {
     console.log("restart game");
-    gGame ={
+    gGame = {
         isOn: false,
         shownCount: 0,
         markedBombsCount: 0,
         secsPassed: 0,
-        gFirstClicked: false
+        gIsFirstClicked: false,
+        livesCount: 3
+
     }
+    ghintsUsed = 0;
     document.querySelector('.timer').innerHTML = `<h2>0.000</h2>`;
     clearInterval(gInterval);
-
-    console.log('gLevel.SIZE', gLevel.SIZE)
-    if (gLevel.SIZE){
+    var elHintButtons = document.querySelectorAll('.hints button');
+    for (var i=0; i<elHintButtons.length; i++){
+        elHintButtons[i].classList.remove('hidden')
+    }
+    if (gLevel.SIZE) {
         document.querySelector('.restart').innerText = NORMAL;
         gBoard = createBoard(gLevel.SIZE);
         renderBoard(gBoard);
 
     }
-    
+
 }
 
 
@@ -59,8 +58,6 @@ function levelclickedHandler(elButton) {
     gLevel.SIZE = size;
     gLevel.MINES = numesCount;
     restartGame();
-    // gBoard = createBoard(size);
-    // renderBoard(gBoard);
 
 }
 
@@ -74,33 +71,46 @@ function createBoard(size) {
             board[i][j] = cell;
         }
     }
-    for (var i = 0; i < size; i++) {
-        for (var j = 0; j < size; j++) {
-            board[i][j].bombNegsCount = countBombNegs(board, { i: i, j: j });
-        }
-    }
-    randomllyPlaceBombs(board);
     console.table(board);
     return board;
 }
 
 
 
-function randomllyPlaceBombs(board) {
+function randomllyPlaceBombs(board, id) {
     var count = 0;
+    var clickedId = getPositionFromClass(id)
     while (count <= gLevel.MINES) {
         var row = getRandomIntInclusive(0, gLevel.SIZE - 1);
         var col = getRandomIntInclusive(0, gLevel.SIZE - 1);
         var cell = board[row][col]
-        if (!cell.isBomb) {
+        if (!cell.isBomb && !(clickedId.i === row && clickedId.j === col)) {
             cell.isBomb = true;
+            // cell.bombNegsCount = -1;
             count++;
             console.log(`added bomb at index ${row}-${col} :${cell}`)
         }
     }
-
-
 }
+
+
+function renderBombs(){
+    console.log("inside render")
+    for(var i =0; i<gBoard.length; i++){
+        for(var j=0; j<gBoard.length; j++){
+            var cell = gBoard[i][j];
+            var query = `#pos-${i}-${j} div`;
+            if(cell.isBomb){
+                document.querySelector(query).innerText = BOMB;
+                document.querySelector(query).classList.add('bomb');
+            }else if (cell.bombNegsCount){
+                document.querySelector(query).innerText = cell.bombNegsCount;
+
+            }
+        }
+    }
+}
+
 
 function getRandomIntInclusive(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -109,21 +119,18 @@ function getRandomIntInclusive(min, max) {
 
 
 function renderBoard(board) {
+    console.log("rendering bombs");
     var strHtml = ''
     for (var i = 0; i < gLevel.SIZE; i++) {
         strHtml += '<tr>\n';
         for (var j = 0; j < gLevel.SIZE; j++) {
-            var text = '';
             var divClass = '';
             var cell = board[i][j];
+            console.log("cell", cell)
             var id = `pos-${i}-${j}`;
-            if (cell.isBomb) {
-                text = BOMB;
-                divClass += 'bomb ';
-            }
-            var text = (cell.isBomb) ? BOMB : countBombNegs(gBoard, { i: i, j: j });
+            // var text = (cell.isBomb) ? BOMB : countBombNegs(gBoard, { i: i, j: j });
             divClass += (!cell.isRevealed) ? 'hidden' : '';
-            strHtml += `<td id = ${id} oncontextmenu="return false;" onmousedown = "cellClickedHandler(id, event)"><div class = "${divClass}">${text}</div></td>`
+            strHtml += `<td id = ${id} oncontextmenu="return false;" onmousedown = "cellClickedHandler(id, event)"><div data-i="${i}" data-j= "${j}" class = "${divClass}"></div></td>`
         }
         strHtml += '</tr>\n';
     }
@@ -133,7 +140,9 @@ function renderBoard(board) {
 
 
 
+
 function countBombNegs(board, position) {
+    var res = ''
     var count = 0;
     var rowStart = position.i - 1;
     var rowEnd = position.i + 1;
@@ -148,38 +157,64 @@ function countBombNegs(board, position) {
         }
 
     }
-    return count === 0 ? '' : '' + count;
+    if (count !== 0) {
+        res += count
+    }
+    return res
 }
 
 
 function cellClickedHandler(id, event) {
+    var clickedId = getPositionFromClass(id);
+    var cell = gBoard[clickedId.i][clickedId.j];
+    if(cell.isRevealed) return;
     (event.button === 0) ? leftClickHandler(id) : rightClickHandler(id);
 }
 
 
 function leftClickHandler(id) {
-    if (!gGame.gFirstClicked) {
+    if (!gGame.gIsFirstClicked) {
+        randomllyPlaceBombs(gBoard, id);
+        //update bomb count for each cell object
+        for (var i = 0; i < gLevel.SIZE; i++) {
+            for (var j = 0; j < gLevel.SIZE; j++) {
+                gBoard[i][j].bombNegsCount = +countBombNegs(gBoard, { i: i, j: j });
+                console.log("after randombomb", gBoard[i][j])
+            }
+        }
+        console.log("finished placing bombs")
+        renderBombs();
+        console.log("finished renderring bombs")
         gInterval = setInterval(setTime, 1);
-        gGame.gFirstClicked = true;
+        gGame.gIsFirstClicked = true;
         gGame.isOn = true;
     }
-    if (!gGame.isOn) return;
 
-    //UPDATE DOM
+    var position = getPositionFromClass(id);
+    var cell = gBoard[position.i][position.j];
+    if (!gGame.isOn || cell.isRevealed) return;
+    if (+cell.bombNegsCount === 0 && !cell.isBomb) {
+        console.log("000000000000");
+        expandShown(gBoard, position.i, position.j)
+    }
+    cell.isRevealed = true;
+//UPDATE DOM
     var elTd = document.querySelector(`#${id}`)
     elTd.style.backgroundColor = '#96d8d5';
 
     var elDiv = document.querySelector(`#${id} div`);
     elDiv.classList.remove('hidden');
 
-    //UPDATE MODEL
-    var position = getPositionFromClass(id);
-    var cell = gBoard[position.i][position.j];
-    cell.isRevealed = true;
-
     if (cell.isBomb) {
-        gameOver();
-    }
+        console.log("tries: ", gGame.livesCount);
+        if(gGame.livesCount !== 0) {
+            gGame.livesCount --;
+            console.log("lives", gGame.livesCount);
+            gGame.shownCount ++;
+            alert (`Hit a bomb, ${gGame.livesCount} lives left`);
+        } else gameOver();
+        
+    } 
     else {
         gGame.shownCount++;
     }
@@ -194,22 +229,28 @@ function rightClickHandler(id) {
         gGame.markedBombsCount++;
     }
     cell.isMarked = true;
-    var elTd = document.querySelector(`#${id}`)
+    var elTd = document.querySelector(`#${id} div`)
+    // elTd.dataset.prev = elTd.innerText;
     elTd.innerText = FLAG;
-    checkVictory();
+    elTd.classList.remove('hidden');
+    elTd.classList.add('flag')
 
+    checkVictory();
 }
+
+
 
 //className = pos-1-2
 function getPositionFromClass(id) {
     var posArr = id.split('-');
     var position = {
-        i: posArr[1],
-        j: posArr[2]
+        i: +posArr[1],
+        j: +posArr[2]
     }
     return position;
-
 }
+
+
 
 function gameOver() {
     var bombs = document.querySelectorAll('.bomb');
@@ -220,19 +261,21 @@ function gameOver() {
     clearInterval(gInterval);
     document.querySelector('.timer h2').innerText = '0:000';
     gGame.isOn = false;
-
-
 }
 
+
+
+
 function checkVictory() {
-    console.log("check victory")
     if (gGame.markedBombsCount + gGame.shownCount === gLevel.SIZE ** 2) {
-        console.log("you win");
         document.querySelector('.restart').innerText = WIN;
         clearInterval(gInterval);
+        
 
     }
 }
+
+
 
 function setTime() {
     gGame.secsPassed++;
@@ -241,12 +284,87 @@ function setTime() {
     elTimer.innerHTML = `<h2>${pretyTime}</h2>`;
 }
 
-// function expandShown(board, elCell, i, j){
-//     if(board[i][j].bombNegsCount === 0){
-//         for
-//     }
 
-// }
+
+
+
+function expandShown(board, i, j) {
+    console.log('clicked');
+    var row = i;
+    var col = j;
+    console.log(` begin:i: ${row} j: ${col}`)
+    var startRow = row - 1;
+    var endRow = row + 2;
+    var startCol = col - 1;
+    var endCol = col + 2;
+    for (var i = startRow; i < endRow; i++) {
+        if (i < 0 || i >= board.length) continue;
+        for (var j = startCol; j < endCol; j++) {
+            if (j < 0 || j >= board[0].length) continue;
+            if(i === row && j === col) continue;
+            var cell = board[i][j];
+            console.log("cell expend", cell);
+            if (!cell.isRevealed ){
+                document.querySelector(`#pos-${i}-${j}`).style.backgroundColor = '#96d8d5';
+                document.querySelector(`#pos-${i}-${j} div`).classList.remove('hidden');
+                cell.isRevealed =true;
+                gGame.shownCount ++;
+              
+            }
+            
+        }
+    }
+}
+
+function hintClickedHandler(){
+    if(ghintsUsed < 3) {
+        document.querySelector(`#hint${ghintsUsed}`).classList.add('hidden');
+        var safeCells = document.querySelectorAll('.hidden:not(.bomb)');
+        var randomPosition  = getRandomIntInclusive(0, safeCells.length-1);
+        var elDiv = document.querySelectorAll('.hidden:not(.bomb)')[randomPosition];
+        var row = +elDiv.dataset.i;
+        var col = +elDiv.dataset.j;
+        for(var i = row - 1; i< row + 2; i++){
+            if (i < 0 || i >= gBoard.length) continue;
+            for(var j = col - 1; j < col + 2; j++){
+                if (j < 0 || j >= gBoard[0].length) continue;
+                if(gBoard[i][j].isRevealed) continue;
+                var elDiv = document.querySelector(`#pos-${i}-${j} div`)
+                if (elDiv.classList.contains('flag')){
+                    if(gBoard[i][j].isBomb){
+                        elDiv.innerText = BOMB;
+                    } else if(gBoard[i][j].bombNegsCount){
+                        elDiv.innerText = gBoard[i][j].bombNegsCount;
+                    }else{
+                        elDiv.innerText = '';
+                    }
+                    
+                }  
+                elDiv.parentNode.style.backgroundColor = 'beige';
+                elDiv.classList.remove('hidden');
+                elDiv.classList.add('exposed');    
+         
+            }
+        }
+    
+        setTimeout(function(){
+            var exposedCells = document.querySelectorAll('.exposed');
+            for(var i = 0; i<exposedCells.length; i++){
+                exposedCells[i].parentNode.style.backgroundColor = 'white';
+                if(!exposedCells[i].classList.contains('flag')){
+                    exposedCells[i].classList.add('hidden');
+                 }else{
+                    exposedCells[i].innerText = FLAG;
+                 }
+                exposedCells[i].classList.remove('exposed');
+                if(exposedCells[i].classList.contains('wasMarked')){
+                    exposedCells[i].innerText = FLAG;
+                }
+            }
+        },2000)
+        ghintsUsed ++;
+    }
+}
 
 
 

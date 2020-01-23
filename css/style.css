@@ -1,5 +1,13 @@
+.container{
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 table {
     border: 1px solid black;
+    margin: auto;
+
 }
 
 td {
@@ -19,3 +27,17 @@ td {
     height: 40px;
     font-size: xx-large;
 }  
+
+.hints button{
+    width: 60px;
+    height: 30px;
+}
+
+.hints{
+    padding: 10px;
+
+}
+
+.restart{
+    margin: 10px;
+}
